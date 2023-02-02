@@ -2,8 +2,9 @@ import Plots
 
 err(x, y) = (x - y)^2
 
-ADC = [800;817;846;869;901;938;981;1018;1060;1098;1138;1322;1401;1488;1583;1661;1777;1997;2217;2389;2554;2653;2716;2783;2845;2908;2970;3014;3071;3133;3206]
-dBm_expected = [0;-1;-2;-3;-4;-5;-6;-7;-8;-9;-10;-14;-16;-18;-20;-22;-25;-30;-35;-38;-40;-42;-44;-46;-48;-50;-52;-54;-56;-58;-60]
+#force 64bit float type
+ADC = Float64.(sort([800, 817, 846, 869, 901, 938, 981, 1018, 1060, 1098, 1138, 1322, 1401, 1488, 1583, 1661, 1777, 1997, 2217, 2389, 2554, 2653, 2716, 2783, 2845, 2908, 2970, 3014, 3071, 3133, 3206, 1201, 1245, 1284, 1365, 1447, 1526, 1620, 1698, 1733, 1811, 1857, 1899, 1937, 2035, 2081, 2123, 2167, 2274, 2326, 2452, 2603, 2687, 2756, 2826, 2879, 2940, 2992, 3048, 3103, 3164]))
+dBm_expected = Float64.(rotr90((0:-1:-60)'))
 
 pic = Plots.plot(ADC,
                  dBm_expected,
@@ -13,9 +14,9 @@ pic = Plots.plot(ADC,
                  label="dBm, ADC pairs",
                  title="1st order")
 
-A = ones(31, 2) .* [ADC ones(31)]
+g(x) = [x 1]
+A = reduce(vcat, g.(ADC))
 
-#coeffs = A\ADC
 firstOrderCoeffs = A \ dBm_expected
 
 firstOrder(x) = firstOrderCoeffs[1]x + firstOrderCoeffs[2]
@@ -23,7 +24,10 @@ firstOrder(x) = firstOrderCoeffs[1]x + firstOrderCoeffs[2]
 xs = range(minimum(ADC), maximum(ADC), 1000)
 firstOrderYs = firstOrder.(xs)
 
-firstOrderError = sum(err.(dBm_expected, firstOrder.(ADC)))
+mat = maximum(firstOrder.(ADC) .- dBm_expected)
+@show mat
+
+firstOrderError = 0.5 * sum(err.(dBm_expected, firstOrder.(ADC)))
 
 pic = Plots.plot!(xs,
                   firstOrderYs,
@@ -50,7 +54,7 @@ nPic = Plots.plot(ADC,
 
 secondOrderYs = secondOrder.(xs)
 
-secondOrderError = sum(err.(dBm_expected, secondOrder.(ADC)))
+secondOrderError = 0.5 * sum(err.(dBm_expected, secondOrder.(ADC)))
 
 nPic = Plots.plot!(xs,
                    secondOrderYs,
@@ -77,7 +81,7 @@ nPic = Plots.plot(ADC,
 
 thirdOrderYs = thirdOrder.(xs)
 
-thirdOrderError = sum(err.(dBm_expected, thirdOrder.(ADC)))
+thirdOrderError = 0.5 * sum(err.(dBm_expected, thirdOrder.(ADC)))
 
 nPic = Plots.plot!(xs,
                    thirdOrderYs,
@@ -104,7 +108,7 @@ nPic = Plots.plot(ADC,
 
 fourthOrderYs = fourthOrder.(xs)
 
-fourthOrderError = sum(err.(dBm_expected, fourthOrder.(ADC)))
+fourthOrderError = 0.5 * sum(err.(dBm_expected, fourthOrder.(ADC)))
 
 nPic = Plots.plot!(xs,
                    fourthOrderYs,
@@ -120,8 +124,8 @@ nPic = Plots.plot(ADC,
                   label="dbm, ADC pairs",
                   title="comparison")
 nPic = Plots.plot!(xs,
-                   secondOrderYs,
-                   label="1st order fit function, error = " * string(round(secondOrderError, digits=4)))
+                   firstOrderYs,
+                   label="1st order fit function, error = " * string(round(firstOrderError, digits=4)))
 nPic = Plots.plot!(xs,
                    secondOrderYs,
                    label="2nd order fit function, error = " * string(round(secondOrderError, digits=4)))
@@ -138,3 +142,16 @@ Plots.svg(nPic, "comparison")
 @show secondOrderCoeffs
 @show thirdOrderCoeffs
 @show fourthOrderCoeffs
+
+
+#correction of linearization @credits djole
+
+approx = fourthOrder.(ADC) .- firstOrder.(ADC)
+
+Plots.plot(ADC, approx, linetype=:scatter)
+
+#1st order function with estimated error
+
+#betterFirstOrder(x) = 
+
+#betterFirstOrderError = sum(err.(dBm_expected, ))
