@@ -1,9 +1,13 @@
-import Plots
+using Plots
+using PlotlyBase
+using PlotlySave
+
+Plots.plotly()
 
 err(x, y) = (x - y)^2
 
 #force 64bit float type
-ADC = Float64.(sort([800, 817, 846, 869, 901, 938, 981, 1018, 1060, 1098, 1138, 1322, 1401, 1488, 1583, 1661, 1777, 1997, 2217, 2389, 2554, 2653, 2716, 2783, 2845, 2908, 2970, 3014, 3071, 3133, 3206, 1201, 1245, 1284, 1365, 1447, 1526, 1620, 1698, 1733, 1811, 1857, 1899, 1937, 2035, 2081, 2123, 2167, 2274, 2326, 2452, 2603, 2687, 2756, 2826, 2879, 2940, 2992, 3048, 3103, 3164]))
+ADC = Float64.(sort([800, 817, 846, 869, 901, 938, 981, 1018, 1060, 1098, 1138, 1322, 1401, 1488, 1583, 1661, 1777, 1997, 2217, 2389, 2522, 2653, 2716, 2783, 2845, 2908, 2970, 3014, 3071, 3133, 3206, 1201, 1245, 1284, 1365, 1447, 1526, 1620, 1698, 1733, 1811, 1857, 1899, 1937, 2035, 2081, 2123, 2167, 2274, 2326, 2452, 2603, 2687, 2756, 2826, 2879, 2940, 2992, 3048, 3103, 3164]))
 dBm_expected = Float64.(rotr90((0:-1:-60)'))
 
 pic = Plots.plot(ADC,
@@ -29,11 +33,11 @@ mat = maximum(firstOrder.(ADC) .- dBm_expected)
 
 firstOrderError = 0.5 * sum(err.(dBm_expected, firstOrder.(ADC)))
 
-pic = Plots.plot!(xs,
+pic1st = Plots.plot!(xs,
                   firstOrderYs,
                   label="fit function, error = " * string(round(firstOrderError, digits=4)))
 
-Plots.svg(pic, "fitImage1stOrder")
+# PlotlySave.savefig(pic, "fitImage1stOrder.svg")
 
 #2nd order polynomial
 g(x) = [x^2  x 1]
@@ -56,11 +60,11 @@ secondOrderYs = secondOrder.(xs)
 
 secondOrderError = 0.5 * sum(err.(dBm_expected, secondOrder.(ADC)))
 
-nPic = Plots.plot!(xs,
+pic2nd = Plots.plot!(xs,
                    secondOrderYs,
                    label="fit function, error = " * string(round(secondOrderError, digits=4)))
 
-Plots.svg(nPic, "fitImage2ndOrder")
+# PlotlySave.savefig(pic, "fitImage2ndOrder.svg")
 
 #3rd order polynomial
 g(x) = [x^3 x^2  x 1]
@@ -83,11 +87,12 @@ thirdOrderYs = thirdOrder.(xs)
 
 thirdOrderError = 0.5 * sum(err.(dBm_expected, thirdOrder.(ADC)))
 
-nPic = Plots.plot!(xs,
+pic3rd = Plots.plot!(xs,
                    thirdOrderYs,
                    label="fit function, error = " * string(round(thirdOrderError, digits=4)))
 
-Plots.svg(nPic, "fitImage3rdOrder")
+# PlotlySave.savefig(pic, "fitImage3rdOrder.svg")
+
 
 #4th order polynomial
 g(x) = [x^4 x^3 x^2  x 1]
@@ -110,11 +115,12 @@ fourthOrderYs = fourthOrder.(xs)
 
 fourthOrderError = 0.5 * sum(err.(dBm_expected, fourthOrder.(ADC)))
 
-nPic = Plots.plot!(xs,
+pic4th = Plots.plot!(xs,
                    fourthOrderYs,
                    label="fit function, error = " * string(round(fourthOrderError, digits=4)))
 
-Plots.svg(nPic, "fitImage4thOrder")
+# PlotlySave.savefig(pic, "fitImage4thOrder.svg")
+
 
 nPic = Plots.plot(ADC,
                   dBm_expected,
@@ -132,11 +138,11 @@ nPic = Plots.plot!(xs,
 nPic = Plots.plot!(xs,
                    thirdOrderYs,
                    label="3rd order fit function, error = " * string(round(thirdOrderError, digits=4)))
-nPic = Plots.plot!(xs,
+piccomp = Plots.plot!(xs,
                    fourthOrderYs,
                    label="4th order fit function, error = " * string(round(fourthOrderError, digits=4)))
 
-Plots.svg(nPic, "comparison")
+# Plots.svg(nPic, "comparison")
 
 @show firstOrderCoeffs
 @show secondOrderCoeffs
@@ -148,7 +154,33 @@ Plots.svg(nPic, "comparison")
 
 approx = fourthOrder.(ADC) .- firstOrder.(ADC)
 
-Plots.plot(ADC, approx, linetype=:scatter)
+npic = Plots.plot(ADC, approx, linetype=:scatter)
+
+
+#approximate correction function
+g(x) = [x^5 x^4 x^3 x^2 x 1]
+
+A = reduce(vcat, g.(ADC))
+
+corrFCoeffs = A \ approx
+
+#xs = range(minimum(approx), maximum(approx), 1000)
+
+corrF(x) = 
+            corrFCoeffs[1]x^5 + 
+            corrFCoeffs[2]x^4 + 
+            corrFCoeffs[3]x^3 + 
+            corrFCoeffs[4]x^2 + 
+            corrFCoeffs[5]x +
+            corrFCoeffs[6]
+
+picerr = Plots.plot!(xs,
+                   corrF.(xs),
+                   label="5th order fit function")
+
+# @show npic
+
+
 
 #1st order function with estimated error
 
