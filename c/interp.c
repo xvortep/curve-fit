@@ -1,5 +1,6 @@
 /*
 depends on
+    plotutils
     libgsl-dev
 
 build with
