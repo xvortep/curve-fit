@@ -4,6 +4,8 @@ using PlotlySave
 
 Plots.plotly()
 
+f(x, n) = ones(n) .* x .^ collect(n-1:-1:0) # todo add this functionality
+
 err(x, y) = (x - y)^2
 
 #force 64bit float type
